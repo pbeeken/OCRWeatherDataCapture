@@ -1,0 +1,5 @@
+2026-01-09 18:23:36,528 - INFO	- This is an info message
+2026-01-09 18:23:36,528 - WARNING	- This is a warning message
+2026-01-09 18:23:36,528 - ERROR	- This is an error message
+2026-01-09 19:40:30,315 - ERROR	- No such comm target registered: jupyter.widget.control
+2026-01-09 19:40:30,316 - WARNING	- No such comm: 0dc7ba80-47dd-49d2-a93a-4d2c3db5ad09
