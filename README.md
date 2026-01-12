@@ -10,6 +10,7 @@ In the meantime we would like to use this information. While the software that p
 ```python
 NaN = float('nan')
 windSources = {
+    'Timestamp':          {'bounds':(100,  64, 294,  78), 'value': NaN }, #dateString for reading  SHOULD BE FIRST
     'WindSpeedAvg [kts]': {'bounds':( 21, 307,  63, 327), 'value': NaN,}, #kts
     'WindSpeedGst [kts]': {'bounds':(116, 307, 158, 327), 'value': NaN }, #kts
     'WindSpeedAvg [mph]': {'bounds':( 21, 334,  63, 351), 'value': NaN }, #mph
@@ -24,7 +25,6 @@ windSources = {
     'DewPoint [°F]':      {'bounds':(505, 322, 552, 341), 'value': NaN }, #dewpoint degFarenheit
     'DewPoint [°C]':      {'bounds':(563, 322, 605, 341), 'value': NaN }, #dewPoint degCentegrade
     'RelHum [%]':         {'bounds':(391, 323, 448, 341), 'value': NaN }, #rel. humidity
-    'WindTimestamp':      {'bounds':(100,  64, 294,  78), 'value': NaN }, #dateString for reading
     'WindSpeedM24 [kt]':  {'bounds':(112, 412, 150, 435), 'value': NaN }, #kts max in last 24hrs
     'WindDirM24 [°]':     {'bounds':(271, 412, 300, 433), 'value': NaN }, #deg True in last 24hrs
     'WindTimeM24':        {'bounds':(114, 433, 299, 454), 'value': NaN }, #dateString of 24Hr Max
@@ -35,6 +35,7 @@ WindDataDF = pd.DataFrame(columns=[windSources.keys()])
  > Every ~30min grab the wave.png image, the regions are already defined for the pieces of the 
 ```python
 waveSources = {
+    'Timestamp':          {'bounds':(100,  64, 294,  78), 'value': NaN }, #dateString for reading  SHOULD BE FIRST
     'WaveHgtSig [ft]':    {'bounds':( 68, 329, 112, 346), 'value': NaN,}, #ft
     'WaveHgtMax [ft]':    {'bounds':(168, 329, 212, 346), 'value': NaN }, #ft
     'WaveHgtSig [m]':     {'bounds':( 68, 353, 112, 371), 'value': NaN,}, #m
@@ -42,7 +43,6 @@ waveSources = {
     'WaveDir [°]':        {'bounds':(292, 322, 347, 340), 'value': NaN }, #degT
     'WavPerAvg [s]':      {'bounds':(479, 193, 539, 211), 'value': NaN }, #sec
     'WavPerDom [s]':      {'bounds':(479, 251, 539, 269), 'value': NaN }, #sec
-    'WaveTimestamp':      {'bounds':(100,  64, 294,  78), 'value': NaN }, #dateString for reading
     'WaveHgt24 [ft]':     {'bounds':(169, 413, 207, 433), 'value': NaN }, #kts max in last 24hrs
     'WaveDirM24 [°]':     {'bounds':(327, 412, 354, 433), 'value': NaN }, #deg True in last 24hrs
     'WavePerAvgM24 [s]':  {'bounds':(169, 442, 207, 433), 'value': NaN }, #deg True in last 24hrs

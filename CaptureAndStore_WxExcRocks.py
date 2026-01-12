@@ -22,10 +22,10 @@ import pandas as pd
 ### Global Structures and Configurations
 # Timezone configuration OLD SCHOOL
 UTC = pytz.utc
-EST = pytz.timezone('US/Eastern')
+# EST = pytz.timezone('US/Eastern')
 # Timezone configuration NEW SCHOOL
-# UTC = timezone.utc
-# EST = timezone('America/New_York')
+# UTC = ZoneInfo.utc
+EST = ZoneInfo('US/Eastern')
 
 """
     Quick review: NERACOOS weather buoys are managed by the Univ. of Ct. Bridgeport. They have invested, 
@@ -51,6 +51,7 @@ westernLIWind_url = "https://clydebank.dms.uconn.edu/wlis_wxSens1.png"  # Wester
 
 # dictionary of locations within the image of the data we want.
 windSources = {
+    'Timestamp':          {'bounds':(100,  64, 294,  78), 'value': NaN }, #dateString for reading
     'WindSpeedAvg [kts]': {'bounds':( 21, 307,  63, 327), 'value': NaN,}, #kts
     'WindSpeedGst [kts]': {'bounds':(116, 307, 158, 327), 'value': NaN }, #kts
     'WindSpeedAvg [mph]': {'bounds':( 21, 334,  63, 351), 'value': NaN }, #mph
@@ -65,7 +66,6 @@ windSources = {
     'DewPoint [°F]':      {'bounds':(505, 322, 552, 341), 'value': NaN }, #dewpoint degFarenheit
     'DewPoint [°C]':      {'bounds':(563, 322, 605, 341), 'value': NaN }, #dewPoint degCentegrade
     'RelHum [%]':         {'bounds':(391, 323, 448, 341), 'value': NaN }, #rel. humidity
-    'WindTimestamp':      {'bounds':(100,  64, 294,  78), 'value': NaN }, #dateString for reading
     'WindSpeedM24 [kt]':  {'bounds':(112, 412, 150, 435), 'value': NaN }, #kts max in last 24hrs
     'WindDirM24 [°]':     {'bounds':(271, 412, 300, 433), 'value': NaN }, #deg True in last 24hrs
     'WindTimeM24':        {'bounds':(114, 433, 299, 454), 'value': NaN }, #dateString of 24Hr Max
@@ -77,6 +77,7 @@ execrocksWaves_url = "https://clydebank.dms.uconn.edu/exrx_wavs.png"
 
 # dictionary of locations within the image of the data we want.
 waveSources = {
+    'Timestamp':         {'bounds':(100,  64, 294,  78), 'value': NaN },  #dateString for reading
     'WaveHgtSig [ft]':    {'bounds':( 68, 329, 112, 346), 'value': NaN,}, #ft
     'WaveHgtMax [ft]':    {'bounds':(168, 329, 212, 346), 'value': NaN }, #ft
     'WaveHgtSig [m]':     {'bounds':( 68, 353, 112, 371), 'value': NaN,}, #m
@@ -84,7 +85,6 @@ waveSources = {
     'WaveDir [°]':        {'bounds':(292, 322, 347, 340), 'value': NaN }, #degT
     'WavPerAvg [s]':      {'bounds':(479, 193, 539, 211), 'value': NaN }, #sec
     'WavPerDom [s]':      {'bounds':(479, 251, 539, 269), 'value': NaN }, #sec
-    'WaveTimestamp':      {'bounds':(100,  64, 294,  78), 'value': NaN }, #dateString for reading
     'WaveHgt24 [ft]':     {'bounds':(169, 413, 207, 433), 'value': NaN }, #kts max in last 24hrs
     'WaveDirM24 [°]':     {'bounds':(327, 412, 354, 433), 'value': NaN }, #deg True in last 24hrs
     'WavePerAvgM24 [s]':  {'bounds':(169, 442, 207, 433), 'value': NaN }, #deg True in last 24hrs
@@ -92,10 +92,18 @@ waveSources = {
     'WaveTimeM24':        {'bounds':(169, 433, 363, 455), 'value': NaN }, #dateString of 24Hr Max  
 }
 
-"""
-Class to capture and store weather data from NERACOOS weather buoys.
-"""
+
 class BuoyDataCapture:
+    """
+    Class to capture data from NERACOOS weather buoys. NERACOOS (long acronym: https://neracoos.org/), capture data from
+    floating environmental stations up and down the coast. Mostly, it standardardizes the data storage and engineering of
+    these stations. The data can be made available via an API but for the last 18 mos. it has only been available through
+    a graphical display. As a consequence, this class uses OCR to read data from images and store the results in this object.
+    This class works for both wind and wave data sections.  They have similar layouts. The water chemistry and bathymetry panels
+    are quite different and might need a different class but we have what we need for our use case.
+    :param sourceImageURL: URL of the image to fetch.
+    :param dataExtraction: Dictionary defining regions to extract and store results.
+    """
 
     # Source for image to decode
     sourceURL = ""
@@ -267,6 +275,14 @@ class BuoyDataCapture:
         return self.dataParts[key]['value']
 
 class DataBuffer:
+    """
+    This class manages a ring buffer of data stored in a CSV file. The buffer retains data for the last 3 days (72 hours) only.
+    It uses pandas DataFrame for efficient data handling and storage. As with the OCR class above, this class is agnostic toward
+    the type of data being stored. It could be data from wind or wave panels. The user specifies the column labels and the class manages
+    the rest. 
+    :param labels: List of strings for the column names. (usually just: `list[waveSources.keys()]` or `list[windSources.keys()]`)
+    :param filepath: Path to the CSV file.
+    """
     def __init__(self, labels, filepath="sensor_data.csv"):
         """
         :param labels: List of strings for the column names.
@@ -274,9 +290,6 @@ class DataBuffer:
         """
         self.filepath = filepath
         self.columns = labels
-        
-        if len(self.columns) != len(labels):
-            raise ValueError("There is a mismatch in the number of labels and number of columns.")
 
         if os.path.exists(self.filepath):
             # Load existing data and ensure the index is parsed as datetime
@@ -288,8 +301,10 @@ class DataBuffer:
             self.df.columns = self.columns
         else:
             # Initialize empty DataFrame with custom labels and UTC timezone awareness
-            self.df = pd.DataFrame(columns=self.columns)
-            self.df.index = pd.to_datetime(self.df.index).tz_localize(timezone.utc)
+            #    - 'data=[]' ensures it is empty
+            #    - 'tz="US/Eastern"' sets the timezone (you can use 'UTC', 'Asia/Tokyo', etc.)
+            tz_aware_index = pd.DatetimeIndex([], dtype='datetime64[ns, US/Eastern]', name='Timestamp')
+            df = pd.DataFrame(columns=self.columns, index=tz_aware_index)
 
     def add_record(self, data_dict):
         """
@@ -307,7 +322,7 @@ class DataBuffer:
 
     def _truncate_and_save(self):
         """Truncates data older than 3 days and saves to CSV to persist through reboots."""
-        cutoff_time = datetime.now(timezone.utc) - timedelta(days=3)
+        cutoff_time = datetime.now(EST) - timedelta(days=3)
         # Keep only records from the last 72 hours
         self.df = self.df[self.df.index >= cutoff_time]
         self.df.to_csv(self.filepath)
