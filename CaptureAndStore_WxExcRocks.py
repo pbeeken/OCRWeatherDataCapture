@@ -18,6 +18,8 @@ from PIL import Image
 import numpy as np
 import pandas as pd
 
+import logging
+import os
 
 ### Global Structures and Configurations
 # Timezone configuration OLD SCHOOL
@@ -42,6 +44,7 @@ EST = ZoneInfo('US/Eastern')
     easy lift.
 """
 
+########################################### USER CONFIGURABLES #######################################
 # Global defintion of no data.
 NaN = float('nan')
 
@@ -51,12 +54,12 @@ westernLIWind_url = "https://clydebank.dms.uconn.edu/wlis_wxSens1.png"  # Wester
 
 # dictionary of locations within the image of the data we want.
 windSources = {
-    'Timestamp':          {'bounds':(100,  64, 294,  78), 'value': NaN }, #dateString for reading
+    'Timestamp':          {'bounds':(100,  62, 294,  78), 'value': NaN }, #dateString for reading
     'WindSpeedAvg [kts]': {'bounds':( 21, 307,  63, 327), 'value': NaN,}, #kts
     'WindSpeedGst [kts]': {'bounds':(116, 307, 158, 327), 'value': NaN }, #kts
     'WindSpeedAvg [mph]': {'bounds':( 21, 334,  63, 351), 'value': NaN }, #mph
-    'WindSpeedGst [mph]': {'bounds':(116, 334, 158, 351), 'value': NaN }, #mph
-    'WindSpeedAvg [m/s]': {'bounds':(21, 358, 63, 375),   'value': NaN }, #m/s
+    'WindSpeedGst [mph]': {'bounds':(116, 332, 158, 351), 'value': NaN }, #mph
+    'WindSpeedAvg [m/s]': {'bounds':( 21, 358,  63, 375), 'value': NaN }, #m/s
     'WindSpeedGst [m/s]': {'bounds':(116, 358, 158, 375), 'value': NaN }, #m/s
     'WindDir [°]':        {'bounds':(230, 320, 287, 339), 'value': NaN }, #deg True
     'AirTemp [°F]':       {'bounds':(410, 169, 471, 188), 'value': NaN }, #degFarenheit
@@ -77,20 +80,21 @@ execrocksWaves_url = "https://clydebank.dms.uconn.edu/exrx_wavs.png"
 
 # dictionary of locations within the image of the data we want.
 waveSources = {
-    'Timestamp':         {'bounds':(100,  64, 294,  78), 'value': NaN },  #dateString for reading
+    'Timestamp':          {'bounds':(100,  62, 294,  78), 'value': NaN },  #dateString for reading
     'WaveHgtSig [ft]':    {'bounds':( 68, 329, 112, 346), 'value': NaN,}, #ft
     'WaveHgtMax [ft]':    {'bounds':(168, 329, 212, 346), 'value': NaN }, #ft
     'WaveHgtSig [m]':     {'bounds':( 68, 353, 112, 371), 'value': NaN,}, #m
     'WaveHgtMax [m]':     {'bounds':(168, 353, 212, 371), 'value': NaN }, #m
-    'WaveDir [°]':        {'bounds':(292, 322, 347, 340), 'value': NaN }, #degT
+    'WaveDir [°]':        {'bounds':(292, 320, 347, 340), 'value': NaN }, #degT
     'WavPerAvg [s]':      {'bounds':(479, 193, 539, 211), 'value': NaN }, #sec
     'WavPerDom [s]':      {'bounds':(479, 251, 539, 269), 'value': NaN }, #sec
     'WaveHgt24 [ft]':     {'bounds':(169, 413, 207, 433), 'value': NaN }, #kts max in last 24hrs
     'WaveDirM24 [°]':     {'bounds':(327, 412, 354, 433), 'value': NaN }, #deg True in last 24hrs
-    'WavePerAvgM24 [s]':  {'bounds':(169, 442, 207, 433), 'value': NaN }, #deg True in last 24hrs
-    'WaveperDomM24 [s]':  {'bounds':(542, 442, 574, 433), 'value': NaN }, #deg True in last 24hrs
+    'WavePerAvgM24 [s]':  {'bounds':(440, 412, 468, 430), 'value': NaN }, #avg period in last 24hrs
+    'WaveperDomM24 [s]':  {'bounds':(540, 412, 570, 430), 'value': NaN }, #dominant period in last 24hrs
     'WaveTimeM24':        {'bounds':(169, 433, 363, 455), 'value': NaN }, #dateString of 24Hr Max  
 }
+########################################### USER CONFIGURABLES #######################################
 
 
 class BuoyDataCapture:
@@ -124,10 +128,11 @@ class BuoyDataCapture:
         :param sourceImageURL: Where we get the original image. The last part of the path will be a valid .png file name.
         :param dataExtraction: The structure (see above) that delineates the bounds we are trying to capture along with a place to store the result.
         """
+        dataExtraction = dataExtraction.copy()  # avoid mutating the input dictionary
         self.sourceURL = sourceImageURL
         self.dataParts = dataExtraction
         self.filename = sourceImageURL.split("/")[-1]
-        self.df = pd.DataFrame(keys=self.dataParts.keys())
+        self.df = pd.DataFrame(columns=dataExtraction.keys())
         self.df.index.name = 'Timestamp'
 
     def fetch_image(self, filename=None):
@@ -334,9 +339,11 @@ class DataBuffer:
 
 def main():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    print("----------------------------------------")
-    print("--- Execution Rocks Weather Data Read:")
-    obj = WeatherDataRead(execrocksWind_url, windSources)
+    
+    # print(windSources.keys())
+    print("-----------------------------------------")
+
+    obj = BuoyDataCapture(execrocksWind_url, windSources)
     obj.fetch_image()
     obj.extract_regions()
 
@@ -349,7 +356,7 @@ def main():
 
     print("----------------------------------------")
     print("--- Execution Rocks Wave Data Read:")
-    obj = WeatherDataRead(execrocksWaves_url, waveSources)
+    obj = BuoyDataCapture(execrocksWaves_url, waveSources)
     obj.fetch_image()
     obj.extract_regions()
 
