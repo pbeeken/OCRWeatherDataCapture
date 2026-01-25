@@ -1,0 +1,9 @@
+# Data files
+capture.log
+
+# downloads
+*.csv
+ex*.png
+
+# debugging
+capture.log

@@ -75,3 +75,28 @@ Deal with the initial case.  Set up the `DF` and write it out.
 - Read datafiles
 
 Gather data, populate the `DF` and write it out.
+
+### Phase 3
+
+- setup RaspPi and update libraries
+- test execution on the pi (fix any machine dependancies)
+- build cron job parameters.  
+  > To fire an event at regular intervals it can be done with a /10 
+  > (for minute intervals in an hour i.e. 10,20,30...). To start and a
+  > point other than :00 then use this 7-59/15 which would trigger at 
+  > 7 min past the hour > at :07, :22, :37, :52
+
+  > Some systems don't support the /delta so you can specify the time **RASP-Pi DOES**
+  > in a comma seperated list: 07,22,37,52 in the minute slot.
+
+### Phase 4
+  - Replace the wind graphic with one generated from the captured data. 
+    > Consider reducing the size of the tide graph (decrease it's overall height by 25%)
+
+    > Create a new wind/wave chart and maybe a cool graphic with a compass rose indicating
+    > the magnitude of the wind direction and strength superimposed on the same for the wave
+    > direction and strength.
+
+    > Consider marking the source in the data recording and include central LIS as well as
+    > as backup capture western LIS  [EXC, WLI, CLI] and switch between based on failure tree:
+    > default: EXC : if fail: WLI : if fail: CLI : giveup. or return to Sands Point (different graphic)

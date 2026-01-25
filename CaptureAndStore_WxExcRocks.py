@@ -9,7 +9,7 @@ import requests
 
 # OCR tools
 import pytesseract
-# Bridge to cli tool. Need to install tesseract CLI engine in the OS
+# Bridge to cli tool. Need to install tesseract-ocr CLI engine in the OS
 
 # Managing images
 from PIL import Image
@@ -21,17 +21,19 @@ import pandas as pd
 import logging
 import os
 
+import argparse
+
 ### Global Structures and Configurations
 # Timezone configuration OLD SCHOOL
-UTC = pytz.utc
+# UTC = pytz.utc
 # EST = pytz.timezone('US/Eastern')
 # Timezone configuration NEW SCHOOL
-# UTC = ZoneInfo.utc
+UTC = ZoneInfo('UTC')
 EST = ZoneInfo('US/Eastern')
 
 """
-    Quick review: NERACOOS weather buoys are managed by the Univ. of Ct. Bridgeport. They have invested, 
-    heavily in a package (software and hardware) that provides real-time data on wind, waves and water 
+    Quick review: NERACOOS weather buoys are managed by the Univ. of Ct. Bridgeport. They have invested,
+    heavily in a package (software and hardware) that provides real-time data on wind, waves and water
     quality for LI Sound. We are most interested in two buoys which are close by to our harbor:
     Execution Rocks [exrx] and Western LI Sound [wlis]. The devices with their software can deliver csv lists
     of their systems but it would appear that the servers that present the data are not set up for this or
@@ -75,7 +77,7 @@ windSources = {
 }
 
 # image URIs for Wave information
-westernLIWaves_url = "https://clydebank.dms.uconn.edu/wlis_wavs.png" 
+westernLIWaves_url = "https://clydebank.dms.uconn.edu/wlis_wavs.png"
 execrocksWaves_url = "https://clydebank.dms.uconn.edu/exrx_wavs.png"
 
 # dictionary of locations within the image of the data we want.
@@ -92,7 +94,7 @@ waveSources = {
     'WaveDirM24 [°]':     {'bounds':(327, 412, 354, 433), 'value': NaN }, #deg True in last 24hrs
     'WavePerAvgM24 [s]':  {'bounds':(440, 412, 468, 430), 'value': NaN }, #avg period in last 24hrs
     'WaveperDomM24 [s]':  {'bounds':(540, 412, 570, 430), 'value': NaN }, #dominant period in last 24hrs
-    'WaveTimeM24':        {'bounds':(169, 433, 363, 455), 'value': NaN }, #dateString of 24Hr Max  
+    'WaveTimeM24':        {'bounds':(169, 433, 363, 455), 'value': NaN }, #dateString of 24Hr Max
 }
 ########################################### USER CONFIGURABLES #######################################
 
@@ -146,7 +148,7 @@ class BuoyDataCapture:
         # 2. Change the stored filename
         if filename != None:
             self.filename = filename
-        
+
         # Check if the request was successful (HTTP 200)
         if response.status_code == 200:
             # 3. Store to disk for a second step, the image is not large, maybe keep in memory?
@@ -155,7 +157,7 @@ class BuoyDataCapture:
             # return filename  # Return path to the stored file
         else:
             raise Exception(f"Failed to retrieve image. Status code: {response.status_code}")
-    
+
     def _preprocess_for_ocr(self, croppedImage):
         """
         Improve the image for the OCR process. Mostly used in internally.
@@ -164,17 +166,23 @@ class BuoyDataCapture:
         """
         # 1. Convert to Grayscale ('L' mode in Pillow)
         gray_crop = croppedImage.convert('L')
-        
-        # 2. Resize: Tesseract needs clear, large characters. 
+
+        # 2. Resize: Tesseract needs clear, large characters.
         # Upscaling by 2x or 3x often fixes issues with small regions.
         w, h = gray_crop.size
-        upscaledImage = gray_crop.resize((w * 2, h * 2), Image.Resampling.LANCZOS)
-        
+
+        if os.uname().nodename == "raspberrypi":
+            # For RaspPi
+            upscaledImage = gray_crop.resize((w * 2, h * 2), Image.LANCZOS)
+        else:
+            # For high end
+            upscaledImage = gray_crop.resize((w * 2, h * 2), Image.Resampling.LANCZOS)
+
         # 3. Optional: Invert if text is light on a dark background
         # Tesseract expects dark text on a light background.
-        # upscaled = ImageOps.invert(upscaled) 
+        # upscaled = ImageOps.invert(upscaled)
         return upscaledImage
-    
+
     def ocr_numerals_only(self, image_crop, ocrCharacterLimit):
         """
         Processes a cropped image to extract only numbers and decimal points.
@@ -185,7 +193,7 @@ class BuoyDataCapture:
         # Configuration breakdown:
         # --psm 6: Assume a single uniform block of text (good for small crops)
         # tessedit_char_whitelist: Restrict characters to digits and dot
-        
+
         # Perform OCR
         # text = pytesseract.image_to_string(image_crop, config=self.ocrLimits['numberLike'])
         # # Clean up whitespace/newlines
@@ -198,11 +206,11 @@ class BuoyDataCapture:
         :param image_crops: List of PIL Image objects (from previous step).
         :return: List of extracted numeric strings.
         """
-        print("\tDBG: DATES ONLY")
+        logging.info("\tDBG: DATES ONLY")
         # Configuration breakdown:
         # --psm 6: Assume a single uniform block of text (good for small crops)
         # tessedit_char_whitelist: Restrict characters to digits and dot
-        
+
         # Perform OCR
         # text = pytesseract.image_to_string(image_crop, config=self.ocrLimits['dateLike'])
         # Clean up whitespace/newlines
@@ -219,34 +227,40 @@ class BuoyDataCapture:
         # Perform OCR
         text = pytesseract.image_to_string(image_crop, config=ocrCharacterLimit)
         # Clean up whitespace/newlines
-        return text.strip()        
-        
+        return text.strip()
+
     def extract_regions(self):
         """
-        Extracts multiple rectangular regions from a PNG.  Again, we store the result 
+        Extracts multiple rectangular regions from a PNG.  Again, we store the result
         on disk but maybe we can get away with keeping in memory?
         :param image_path: Path to the retrieved PNG file.
         :param regions: List of 4-tuples (left, upper, right, lower) coordinates.
         :return: List of cropped Image objects.
         """
         # extracted_images = []
-        
+
         with Image.open(self.filename) as img:
             # Standardize for OCR: convert to RGB and remove transparency
-            img = img.convert("RGB") 
+            img = img.convert("RGB")
 
             for key, item in self.dataParts.items():
-                print(f"\tWRK: {key}: {item['bounds']} {key.find("Time")}")
+                logging.info(f"\tWRK: {key}: {item['bounds']} {key.find('Time')}")
                 croppedImage = self._preprocess_for_ocr(img.crop(item['bounds']))
 
                 if key.find("Time")>-1:
                     # Decoding the date can be tricky. Though the buoys are connected via cell their clocks can be wildly off.
                     data = self._ocr_values(croppedImage, self.ocrLimits['datelike']) + f", {datetime.now().year}"
-                    print(f"\t\tDBG: time string [raw]: {repr(data)}")
+                    logging.info(f"\t\tDBG: time string [raw]: {repr(data)}")
                     try:
                         data = datetime.strptime(data, "%I:%M:%S %p %Z, %a %b %d, %Y")  # even though it captures the EST it is naive
                     except:
-                        data = datetime.strptime(data, "%I:%M:%S %p %Z, %b %d, %Y")  # even though it captures the EST it is naive
+                        try:
+                            data = datetime.strptime(data, "%I:%M:%S %p %Z, %a%b %d, %Y")  # even though it captures the EST it is naive
+                        except:
+                            try:
+                                data = datetime.strptime(data, "%I:%M:%S %p %Z, %b %d, %Y")  # even though it captures the EST it is naive
+                            except:
+                                logging.CRITICAL(f"Can't decode date string '{repr(data)}'")
 
                     tz = pytz.timezone('US/Eastern')
                     data = data.replace(tzinfo=tz)
@@ -254,10 +268,10 @@ class BuoyDataCapture:
                     #ATTN: When testing this on Jan 02, 2026 the buoy's clock was 2hrs fast. This may be corrected later.
                     if datetime.now(pytz.timezone('US/Eastern')) < data:
                         # The buoy reports the wrong time every now and again probably 2 hours off. 1/7/26 Seems to have been fixed.
-                        print("\t\tDBG: Fixed time")
+                        logging.info("\t\tDBG: Fixed time")
                         data = data - timedelta(hours=2)
                     else:
-                        print("\t\tDBG: Time is OK")
+                        logging.info("\t\tDBG: Time is OK")
                         data = data
                 else:
                     try:
@@ -272,10 +286,10 @@ class BuoyDataCapture:
         for k in self.dataParts:
             dataDict[k] = self[k]
         return dataDict
-    
+
     def __getitem__(self, key):
         return self.get(key)
-    
+
     def get(self, key):
         return self.dataParts[key]['value']
 
@@ -284,7 +298,7 @@ class DataBuffer:
     This class manages a ring buffer of data stored in a CSV file. The buffer retains data for the last 3 days (72 hours) only.
     It uses pandas DataFrame for efficient data handling and storage. As with the OCR class above, this class is agnostic toward
     the type of data being stored. It could be data from wind or wave panels. The user specifies the column labels and the class manages
-    the rest. 
+    the rest.
     :param labels: List of strings for the column names. (usually just: `list[waveSources.keys()]` or `list[windSources.keys()]`)
     :param filepath: Path to the CSV file.
     """
@@ -301,7 +315,7 @@ class DataBuffer:
             self.df = pd.read_csv(self.filepath, index_col=0, parse_dates=True)
             # Ensure index is timezone-aware (UTC) to match new records
             if self.df.index.tz is None:
-                self.df.index = self.df.index.tz_localize(timezone.utc)
+                self.df.index = self.df.index.tz_localize(UTC)
             # Ensure existing columns match the provided labels
             self.df.columns = self.columns
         else:
@@ -309,7 +323,7 @@ class DataBuffer:
             #    - 'data=[]' ensures it is empty
             #    - 'tz="US/Eastern"' sets the timezone (you can use 'UTC', 'Asia/Tokyo', etc.)
             tz_aware_index = pd.DatetimeIndex([], dtype='datetime64[ns, US/Eastern]', name='Timestamp')
-            df = pd.DataFrame(columns=self.columns, index=tz_aware_index)
+            self.df = pd.DataFrame(columns=self.columns, index=tz_aware_index)
 
     def add_record(self, data_dict):
         """
@@ -317,11 +331,11 @@ class DataBuffer:
         :param data_dict: Dictionary where keys match self.columns.
         """
         # 1. Create a timezone-aware timestamp for the current moment
-        now = datetime.now(timezone.utc)
-        
+        now = datetime.now(UTC)
+
         # 2. Single-step append: loc automatically maps dictionary keys to columns
         self.df.loc[now] = data_dict
-        
+
         # 3. Maintain the 3-day ring buffer and save
         self._truncate_and_save()
 
@@ -336,38 +350,65 @@ class DataBuffer:
         """Access the dataframe for graphing or analysis."""
         return self.df
 
+def captureWindData():
+    """
+    Docstring for captureWindData
+    Capture information from the wind buoy graphical image
+    and store it into a database.
+    """
+    logging.info("-----------------------------------------")
+    logging.info("--- Execution Rocks Wind Data Read:")
+
+    wind = BuoyDataCapture(execrocksWind_url, windSources)
+    wind.fetch_image()
+    wind.extract_regions()
+
+    logging.info(f"time: {wind['Timestamp'].strftime('%Y-%m-%d %I:%M:%S %P %Z')} @{wind['Timestamp']}  ")
+
+    if datetime.now(pytz.timezone('US/Eastern')) < wind['Timestamp']:
+        logging.warning("Why is the time wrong?")
+
+    logging.info(wind.getDict())
+    ## Now we want to store this data in a CSV file or a database.
+    #
+    wind_buffer = DataBuffer(list(windSources.keys()), filepath="execrocks_wind_data.csv")
+    wind_buffer.add_record(wind.getDict())
+
+def captureWaveData():
+    """
+    Docstring for captureWaveData
+    Capture information from the wind buoy graphical image
+    and store it into a database.
+    """
+    logging.info("----------------------------------------")
+    logging.info("--- Execution Rocks Wave Data Read:")
+    wave = BuoyDataCapture(execrocksWaves_url, waveSources)
+    wave.fetch_image()
+    wave.extract_regions()
+
+    logging.info(f"time: {wave['Timestamp'].strftime('%Y-%m-%d %I:%M:%S %P')} @{wave['Timestamp']}  ")
+
+    logging.info(wave.getDict())
+    ## Now we want to store this data in a CSV file or a database.
+    #
+    wave_buffer = DataBuffer(list(waveSources.keys()), filepath="execrocks_waves_data.csv")
+    wave_buffer.add_record(wave.getDict())
 
 def main():
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    
-    # print(windSources.keys())
-    print("-----------------------------------------")
+    parser = argparse.ArgumentParser(
+                    # prog=__name__,
+                    description='Fetches the wind and wave data from the LIRACOOS Buoys',
+                    epilog='')
+    parser.add_argument("-z", "--wind", help="Gather wind information", action='store_true')
+    parser.add_argument("-w", "--wave", help="Gather wave information", action='store_true')
+    args = parser.parse_args()
+    if args.wind:
+        captureWindData()
 
-    obj = BuoyDataCapture(execrocksWind_url, windSources)
-    obj.fetch_image()
-    obj.extract_regions()
-
-    print(f"time: {obj['Timestamp'].strftime('%Y-%m-%d %I:%M:%S %P %Z')} @{obj['Timestamp']}  ")
-
-    if datetime.now(pytz.timezone('US/Eastern')) < obj['Timestamp']:
-        print("Why is the time wrong?")
-
-    print(obj.getDict())
-
-    print("----------------------------------------")
-    print("--- Execution Rocks Wave Data Read:")
-    obj = BuoyDataCapture(execrocksWaves_url, waveSources)
-    obj.fetch_image()
-    obj.extract_regions()
-
-    print(f"time: {obj['Timestamp'].strftime('%Y-%m-%d %I:%M:%S %P')} @{obj['Timestamp']}  ")
-
-    print(obj.getDict())
-
-    ## Now we want to store this data in a CSV file or a database.
-    # TBD
+    if args.wave:
+        captureWaveData()
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.CRITICAL, format='%(asctime)s - %(levelname)s - %(message)s')
     main()
-
