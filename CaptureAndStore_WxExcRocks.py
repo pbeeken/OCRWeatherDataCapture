@@ -3,7 +3,7 @@ General imports needed.
 """
 # foundational libraries
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
+# from zoneinfo import ZoneInfo
 import pytz  # may need to migrate to ZoneInfo
 import requests
 
@@ -25,11 +25,11 @@ import argparse
 
 ### Global Structures and Configurations
 # Timezone configuration OLD SCHOOL
-# UTC = pytz.utc
-# EST = pytz.timezone('US/Eastern')
+UTC = pytz.utc
+EST = pytz.timezone('US/Eastern')
 # Timezone configuration NEW SCHOOL
-UTC = ZoneInfo('UTC')
-EST = ZoneInfo('US/Eastern')
+# UTC = ZoneInfo('UTC')
+# EST = ZoneInfo('US/Eastern')
 
 """
     Quick review: NERACOOS weather buoys are managed by the Univ. of Ct. Bridgeport. They have invested,
@@ -37,7 +37,7 @@ EST = ZoneInfo('US/Eastern')
     quality for LI Sound. We are most interested in two buoys which are close by to our harbor:
     Execution Rocks [exrx] and Western LI Sound [wlis]. The devices with their software can deliver csv lists
     of their systems but it would appear that the servers that present the data are not set up for this or
-    not properly installed.  Since trying to access this infomation doesn't resolve to a permissions error
+    not properly installed.  Since trying to access this information doesn't resolve to a permissions error
     or a no-authorized response but just a blunt php crash I am assuming the later.
 
     Our only option is to read the data from the .png graphical screens that are presented on their
@@ -47,14 +47,14 @@ EST = ZoneInfo('US/Eastern')
 """
 
 ########################################### USER CONFIGURABLES #######################################
-# Global defintion of no data.
+# Global definition of no data.
 NaN = float('nan')
-INDEX = 'TimeEST'
+INDEX = 'TimeStamp' # standard index label for dataframes
 
 # image URIs for Wind information
-execrocksWind_url = "https://clydebank.dms.uconn.edu/exrx_wxSens2.png"  # Execution rocks
-westernLIWind_url = "https://clydebank.dms.uconn.edu/wlis_wxSens1.png"  # Western Long Island
-centralLIWind_url = "https://clydebank.dms.uconn.edu/clis_wxSens1.png"  # Central Long Island
+EXRX_WIND_URL = "https://clydebank.dms.uconn.edu/exrx_wxSens2.png"  # Execution rocks
+WLIS_WIND_URL = "https://clydebank.dms.uconn.edu/wlis_wxSens1.png"  # Western Long Island
+CLIS_WIND_URL = "https://clydebank.dms.uconn.edu/clis_wxSens1.png"  # Central Long Island
 
 # dictionary of locations within the image of the data we want.
 windSources = {
@@ -66,11 +66,11 @@ windSources = {
     'WindSpeedAvg [m/s]': {'bounds':( 21, 358,  63, 375), 'value': NaN }, #m/s
     'WindSpeedGst [m/s]': {'bounds':(116, 358, 158, 375), 'value': NaN }, #m/s
     'WindDir [°]':        {'bounds':(230, 320, 287, 339), 'value': NaN }, #deg True
-    'AirTemp [°F]':       {'bounds':(410, 169, 471, 188), 'value': NaN }, #degFarenheit
-    'AirTemp [°C]':       {'bounds':(409, 221, 471, 238), 'value': NaN }, #degCentegrade
+    'AirTemp [°F]':       {'bounds':(410, 169, 471, 188), 'value': NaN }, #deg Farenheit
+    'AirTemp [°C]':       {'bounds':(409, 221, 471, 238), 'value': NaN }, #deg Centegrade
     'BaromPres [mmHg]':   {'bounds':(391, 415, 449, 434), 'value': NaN }, #barm in mmHg
     'BaromPres [mB]':     {'bounds':(467, 415, 537, 434), 'value': NaN }, #barm in mBar
-    'DewPoint [°F]':      {'bounds':(505, 322, 552, 341), 'value': NaN }, #dewpoint degFarenheit
+    'DewPoint [°F]':      {'bounds':(505, 322, 552, 341), 'value': NaN }, #dewpoint deg Farenheit
     'DewPoint [°C]':      {'bounds':(563, 322, 605, 341), 'value': NaN }, #dewPoint degCentegrade
     'RelHum [%]':         {'bounds':(391, 323, 448, 341), 'value': NaN }, #rel. humidity
     'WindSpeedM24 [kt]':  {'bounds':(112, 412, 150, 435), 'value': NaN }, #kts max in last 24hrs
@@ -79,9 +79,9 @@ windSources = {
 }
 
 # image URIs for Wave information
-execrocksWaves_url = "https://clydebank.dms.uconn.edu/exrx_wavs.png"
-westernLIWaves_url = "https://clydebank.dms.uconn.edu/wlis_wavs.png"
-centralLIWaves_url = "https://clydebank.dms.uconn.edu/clis_wavs.png"
+EXRX_WAVE_URL = "https://clydebank.dms.uconn.edu/exrx_wavs.png"
+WLIS_WAVE_URL = "https://clydebank.dms.uconn.edu/wlis_wavs.png"
+CLIS_WAVE_URL = "https://clydebank.dms.uconn.edu/clis_wavs.png"
 
 # dictionary of locations within the image of the data we want.
 waveSources = {
@@ -96,7 +96,7 @@ waveSources = {
     'WaveHgt24 [ft]':     {'bounds':(169, 413, 207, 433), 'value': NaN }, #kts max in last 24hrs
     'WaveDirM24 [°]':     {'bounds':(327, 412, 354, 433), 'value': NaN }, #deg True in last 24hrs
     'WavePerAvgM24 [s]':  {'bounds':(440, 412, 468, 430), 'value': NaN }, #avg period in last 24hrs
-    'WaveperDomM24 [s]':  {'bounds':(540, 412, 570, 430), 'value': NaN }, #dominant period in last 24hrs
+    'WavePerDomM24 [s]':  {'bounds':(540, 412, 570, 430), 'value': NaN }, #dominant period in last 24hrs
     'WaveTimeM24':        {'bounds':(169, 433, 363, 455), 'value': NaN }, #dateString of 24Hr Max
 }
 ########################################### USER CONFIGURABLES #######################################
@@ -161,7 +161,7 @@ class BuoyDataCapture:
                 f.write(response.content)
             # return filename  # Return path to the stored file
         else:
-            raise Exception(f"Failed to retrieve image. Status code: {response.status_code}")
+            raise requests.RequestException(f"Failed to retrieve image. Status code: {response.status_code}")
 
     def _preprocess_for_ocr(self, croppedImage):
         """
@@ -277,7 +277,7 @@ class BuoyDataCapture:
                         logging.debug("\t\t{data}")
                     else:
                         logging.debug("\t\tTime is correct: {data}")
-                        data = data
+                        # data = data
                 else:
                     try:
                         data = self._ocr_values(croppedImage, self.ocrLimits['numberlike'])
@@ -292,7 +292,6 @@ class BuoyDataCapture:
         # return {k: self[k] for k in self.dataParts if k != INDEX}
         # return all the OCR data
         return {k: self[k] for k in self.dataParts}
-
 
     def getNewDFRecord(self):
         """
@@ -357,8 +356,10 @@ class DataBuffer:
         # self.df.loc[now] = data_dict
         #self.df.set_index(INDEX, inplace=True)
 
-        logging.debug(newRowDF)
-        self.df = pd.concat([self.df, newRowDF])
+        if len(self.df)==0:
+            self.df = newRowDF
+        else:
+            self.df = pd.concat([self.df, newRowDF])
 
         # 3. Maintain the 3-day ring buffer and save
         self._truncate_and_save()
@@ -368,7 +369,12 @@ class DataBuffer:
         cutoff_time = datetime.now(EST) - timedelta(days=3)
         # Keep only records from the last 72 hours
         self.df = self.df[self.df.index >= cutoff_time]
-        self.df.to_csv(self.filepath)
+
+        # Remove columns that are completely empty
+        df_filtered = self.df.dropna(axis=1, how='all')
+
+        # Export the cleaned DataFrame to CSV
+        df_filtered.to_csv(self.filepath)
 
     def get_data(self):
         """Access the dataframe for graphing or analysis."""
@@ -383,21 +389,21 @@ def captureWindData():
     logging.info("-----------------------------------------")
     logging.info("--- Execution Rocks Wind Data Read:")
 
-    wind = BuoyDataCapture(execrocksWind_url, windSources, "exec_wind.png")
+    wind = BuoyDataCapture(EXRX_WIND_URL, windSources, "exec_wind.png")
     wind.fetch_image()
     wind.extract_regions()
 
-    logging.debug(f"time: {wind[INDEX].strftime('%Y-%m-%d %I:%M:%S %P %Z')} @{wind[INDEX]}  ")
+    logging.debug("time: %s @%s  ", wind[INDEX].strftime('%Y-%m-%d %I:%M:%S %P %Z'), wind[INDEX])
 
-    # # I think the early problem was a one off.
+    # # I think this early problem was a one off.
     # if datetime.now(EST) < wind[INDEX]:
     #     logging.warning("Why is the time wrong?")
 
-    logging.debug(f"\t dictionary: {wind.getDict()}")
-    logging.info(f"\t dataframe:  {wind.getNewDFRecord()}")
+    logging.info("dataframe:  %s", wind.getNewDFRecord())
     ## Now we want to store this data in a CSV file or a database.
     #
     wind_buffer = DataBuffer(list(windSources.keys()), filepath="execrocks_wind_data.csv")
+    # Add the new record (automatically handles truncation and saving)
     wind_buffer.add_record(wind.getNewDFRecord())
 
 def captureWaveData():
@@ -408,17 +414,17 @@ def captureWaveData():
     """
     logging.info("----------------------------------------")
     logging.info("--- Execution Rocks Wave Data Read:")
-    wave = BuoyDataCapture(execrocksWaves_url, waveSources, "exec_wavs.png")
+    wave = BuoyDataCapture(EXRX_WAVE_URL, waveSources, "exec_wavs.png")
     wave.fetch_image()
     wave.extract_regions()
 
-    logging.debug(f"time: {wave[INDEX].strftime('%Y-%m-%d %I:%M:%S %P %Z')} @{wave[INDEX]}  ")
+    logging.debug("time: %s @%s", wave[INDEX].strftime('%Y-%m-%d %I:%M:%S %P %Z'), wave[INDEX])
 
-    logging.debug(f"\t dictionary: {wave.getDict()}")
-    logging.info(f"\t dataframe:  {wave.getNewDFRecord()}")
+    logging.debug("dataframe:  %s", wave.getNewDFRecord())
     ## Now we want to store this data in a CSV file or a database.
     #
     wave_buffer = DataBuffer(list(waveSources.keys()), filepath="execrocks_wave_data.csv")
+    # Add the new record (automatically handles truncation and saving)
     wave_buffer.add_record(wave.getNewDFRecord())
 
 def main():
@@ -438,5 +444,5 @@ def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.CRITICAL, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     main()
