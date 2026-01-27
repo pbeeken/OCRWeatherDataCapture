@@ -49,14 +49,16 @@ EST = ZoneInfo('US/Eastern')
 ########################################### USER CONFIGURABLES #######################################
 # Global defintion of no data.
 NaN = float('nan')
+INDEX = 'TimeEST'
 
 # image URIs for Wind information
 execrocksWind_url = "https://clydebank.dms.uconn.edu/exrx_wxSens2.png"  # Execution rocks
 westernLIWind_url = "https://clydebank.dms.uconn.edu/wlis_wxSens1.png"  # Western Long Island
+centralLIWind_url = "https://clydebank.dms.uconn.edu/clis_wxSens1.png"  # Central Long Island
 
 # dictionary of locations within the image of the data we want.
 windSources = {
-    'Timestamp':          {'bounds':(100,  62, 294,  78), 'value': NaN }, #dateString for reading
+    INDEX:                {'bounds':(100,  62, 294,  78), 'value': NaN }, #dateString for reading
     'WindSpeedAvg [kts]': {'bounds':( 21, 307,  63, 327), 'value': NaN,}, #kts
     'WindSpeedGst [kts]': {'bounds':(116, 307, 158, 327), 'value': NaN }, #kts
     'WindSpeedAvg [mph]': {'bounds':( 21, 334,  63, 351), 'value': NaN }, #mph
@@ -77,12 +79,13 @@ windSources = {
 }
 
 # image URIs for Wave information
-westernLIWaves_url = "https://clydebank.dms.uconn.edu/wlis_wavs.png"
 execrocksWaves_url = "https://clydebank.dms.uconn.edu/exrx_wavs.png"
+westernLIWaves_url = "https://clydebank.dms.uconn.edu/wlis_wavs.png"
+centralLIWaves_url = "https://clydebank.dms.uconn.edu/clis_wavs.png"
 
 # dictionary of locations within the image of the data we want.
 waveSources = {
-    'Timestamp':          {'bounds':(100,  62, 294,  78), 'value': NaN },  #dateString for reading
+    INDEX:                {'bounds':(100,  62, 294,  78), 'value': NaN }, #dateString for reading
     'WaveHgtSig [ft]':    {'bounds':( 68, 329, 112, 346), 'value': NaN,}, #ft
     'WaveHgtMax [ft]':    {'bounds':(168, 329, 212, 346), 'value': NaN }, #ft
     'WaveHgtSig [m]':     {'bounds':( 68, 353, 112, 371), 'value': NaN,}, #m
@@ -124,7 +127,7 @@ class BuoyDataCapture:
         'datelike':   r'--psm 6 -c tessedit_char_whitelist=-0123456789,:\ APMSunMonTueWedThuFriSatJanFebMarAprMayJunJulAugSepOctNovDecESTGMT',
     }
 
-    def __init__(self, sourceImageURL, dataExtraction):
+    def __init__(self, sourceImageURL, dataExtraction, filename:None):
         """
         Initialize the class
         :param sourceImageURL: Where we get the original image. The last part of the path will be a valid .png file name.
@@ -133,16 +136,18 @@ class BuoyDataCapture:
         dataExtraction = dataExtraction.copy()  # avoid mutating the input dictionary
         self.sourceURL = sourceImageURL
         self.dataParts = dataExtraction
-        self.filename = sourceImageURL.split("/")[-1]
-        self.df = pd.DataFrame(columns=dataExtraction.keys())
-        self.df.index.name = 'Timestamp'
+        if filename == None:
+            self.filename = sourceImageURL.split("/")[-1]
+        else:
+            self.filename = filename
+        # self.df = pd.DataFrame(columns=dataExtraction.keys())
 
     def fetch_image(self, filename=None):
         """
         retrieve the png and store to a file
         :param filename:  An optional name for the capture.
         """
-        # 1. Retrieve the image  n.b. add a "?###" random number to sidestep local caching
+        # 1. Retrieve the image  n.b. add a "?###" random number to sidestep local caching (which probably doesn't happen on a direct fetch)
         response = requests.get(self.sourceURL + f"?{np.random.randint(1000)}")
 
         # 2. Change the stored filename
@@ -206,7 +211,7 @@ class BuoyDataCapture:
         :param image_crops: List of PIL Image objects (from previous step).
         :return: List of extracted numeric strings.
         """
-        logging.info("\tDBG: DATES ONLY")
+        logging.debug("--DATES ONLY--")
         # Configuration breakdown:
         # --psm 6: Assume a single uniform block of text (good for small crops)
         # tessedit_char_whitelist: Restrict characters to digits and dot
@@ -244,13 +249,13 @@ class BuoyDataCapture:
             img = img.convert("RGB")
 
             for key, item in self.dataParts.items():
-                logging.info(f"\tWRK: {key}: {item['bounds']} {key.find('Time')}")
+                logging.debug(f"WRK: {key}: {item['bounds']} {key.find('Time')}")
                 croppedImage = self._preprocess_for_ocr(img.crop(item['bounds']))
 
                 if key.find("Time")>-1:
                     # Decoding the date can be tricky. Though the buoys are connected via cell their clocks can be wildly off.
                     data = self._ocr_values(croppedImage, self.ocrLimits['datelike']) + f", {datetime.now().year}"
-                    logging.info(f"\t\tDBG: time string [raw]: {repr(data)}")
+                    logging.debug(f"\t\tTime string [raw]: {repr(data)}")
                     try:
                         data = datetime.strptime(data, "%I:%M:%S %p %Z, %a %b %d, %Y")  # even though it captures the EST it is naive
                     except:
@@ -260,18 +265,18 @@ class BuoyDataCapture:
                             try:
                                 data = datetime.strptime(data, "%I:%M:%S %p %Z, %b %d, %Y")  # even though it captures the EST it is naive
                             except:
-                                logging.CRITICAL(f"Can't decode date string '{repr(data)}'")
+                                logging.critical(f"Can't decode date string '{repr(data)}'")
 
-                    tz = pytz.timezone('US/Eastern')
-                    data = data.replace(tzinfo=tz)
+                    data = data.replace(tzinfo=EST)
                     item['value'] = data
                     #ATTN: When testing this on Jan 02, 2026 the buoy's clock was 2hrs fast. This may be corrected later.
-                    if datetime.now(pytz.timezone('US/Eastern')) < data:
+                    if datetime.now(EST) < data:
                         # The buoy reports the wrong time every now and again probably 2 hours off. 1/7/26 Seems to have been fixed.
-                        logging.info("\t\tDBG: Fixed time")
+                        logging.debug("\t\tFixing time: {data}")
                         data = data - timedelta(hours=2)
+                        logging.debug("\t\t{data}")
                     else:
-                        logging.info("\t\tDBG: Time is OK")
+                        logging.debug("\t\tTime is correct: {data}")
                         data = data
                 else:
                     try:
@@ -280,12 +285,27 @@ class BuoyDataCapture:
                     except:
                         data = np.nan
                 item['value'] = data
+        # self.df = pd.DataFrame([self.getDict()], index=self.getTime())
 
     def getDict(self):
-        dataDict = {}
-        for k in self.dataParts:
-            dataDict[k] = self[k]
-        return dataDict
+        # return all the OCR data without the time index
+        # return {k: self[k] for k in self.dataParts if k != INDEX}
+        # return all the OCR data
+        return {k: self[k] for k in self.dataParts}
+
+
+    def getNewDFRecord(self):
+        """
+        Return the time index aware dataframe suitable for concatenation.
+        """
+        df = pd.DataFrame([self.getDict()])
+        df.set_index(INDEX, inplace=True)
+        return df
+
+        # return pd.DataFrame([self.getDict()], index=[self.getTime()])
+
+    def getTime(self):
+        return self[INDEX]
 
     def __getitem__(self, key):
         return self.get(key)
@@ -313,28 +333,32 @@ class DataBuffer:
         if os.path.exists(self.filepath):
             # Load existing data and ensure the index is parsed as datetime
             self.df = pd.read_csv(self.filepath, index_col=0, parse_dates=True)
-            # Ensure index is timezone-aware (UTC) to match new records
+            # Ensure index is timezone-aware (EST) to match new records
             if self.df.index.tz is None:
-                self.df.index = self.df.index.tz_localize(UTC)
+                self.df.index = self.df.index.tz_localize(EST)
             # Ensure existing columns match the provided labels
-            self.df.columns = self.columns
+            # self.df.columns = self.columns
         else:
             # Initialize empty DataFrame with custom labels and UTC timezone awareness
             #    - 'data=[]' ensures it is empty
             #    - 'tz="US/Eastern"' sets the timezone (you can use 'UTC', 'Asia/Tokyo', etc.)
-            tz_aware_index = pd.DatetimeIndex([], dtype='datetime64[ns, US/Eastern]', name='Timestamp')
+            tz_aware_index = pd.DatetimeIndex([], dtype='datetime64[ns, US/Eastern]', name=INDEX)
             self.df = pd.DataFrame(columns=self.columns, index=tz_aware_index)
 
-    def add_record(self, data_dict):
+    def add_record(self, newRowDF):
         """
         Appends a dictionary to the dataframe in one step.
         :param data_dict: Dictionary where keys match self.columns.
         """
         # 1. Create a timezone-aware timestamp for the current moment
-        now = datetime.now(UTC)
+        # now = data_dict[INDEX]   #datetime.now(UTC)
 
         # 2. Single-step append: loc automatically maps dictionary keys to columns
-        self.df.loc[now] = data_dict
+        # self.df.loc[now] = data_dict
+        #self.df.set_index(INDEX, inplace=True)
+
+        logging.debug(newRowDF)
+        self.df = pd.concat([self.df, newRowDF])
 
         # 3. Maintain the 3-day ring buffer and save
         self._truncate_and_save()
@@ -359,20 +383,22 @@ def captureWindData():
     logging.info("-----------------------------------------")
     logging.info("--- Execution Rocks Wind Data Read:")
 
-    wind = BuoyDataCapture(execrocksWind_url, windSources)
+    wind = BuoyDataCapture(execrocksWind_url, windSources, "exec_wind.png")
     wind.fetch_image()
     wind.extract_regions()
 
-    logging.info(f"time: {wind['Timestamp'].strftime('%Y-%m-%d %I:%M:%S %P %Z')} @{wind['Timestamp']}  ")
+    logging.debug(f"time: {wind[INDEX].strftime('%Y-%m-%d %I:%M:%S %P %Z')} @{wind[INDEX]}  ")
 
-    if datetime.now(pytz.timezone('US/Eastern')) < wind['Timestamp']:
-        logging.warning("Why is the time wrong?")
+    # # I think the early problem was a one off.
+    # if datetime.now(EST) < wind[INDEX]:
+    #     logging.warning("Why is the time wrong?")
 
-    logging.info(wind.getDict())
+    logging.debug(f"\t dictionary: {wind.getDict()}")
+    logging.info(f"\t dataframe:  {wind.getNewDFRecord()}")
     ## Now we want to store this data in a CSV file or a database.
     #
     wind_buffer = DataBuffer(list(windSources.keys()), filepath="execrocks_wind_data.csv")
-    wind_buffer.add_record(wind.getDict())
+    wind_buffer.add_record(wind.getNewDFRecord())
 
 def captureWaveData():
     """
@@ -382,17 +408,18 @@ def captureWaveData():
     """
     logging.info("----------------------------------------")
     logging.info("--- Execution Rocks Wave Data Read:")
-    wave = BuoyDataCapture(execrocksWaves_url, waveSources)
+    wave = BuoyDataCapture(execrocksWaves_url, waveSources, "exec_wavs.png")
     wave.fetch_image()
     wave.extract_regions()
 
-    logging.info(f"time: {wave['Timestamp'].strftime('%Y-%m-%d %I:%M:%S %P')} @{wave['Timestamp']}  ")
+    logging.debug(f"time: {wave[INDEX].strftime('%Y-%m-%d %I:%M:%S %P %Z')} @{wave[INDEX]}  ")
 
-    logging.info(wave.getDict())
+    logging.debug(f"\t dictionary: {wave.getDict()}")
+    logging.info(f"\t dataframe:  {wave.getNewDFRecord()}")
     ## Now we want to store this data in a CSV file or a database.
     #
-    wave_buffer = DataBuffer(list(waveSources.keys()), filepath="execrocks_waves_data.csv")
-    wave_buffer.add_record(wave.getDict())
+    wave_buffer = DataBuffer(list(waveSources.keys()), filepath="execrocks_wave_data.csv")
+    wave_buffer.add_record(wave.getNewDFRecord())
 
 def main():
     parser = argparse.ArgumentParser(
@@ -402,6 +429,7 @@ def main():
     parser.add_argument("-z", "--wind", help="Gather wind information", action='store_true')
     parser.add_argument("-w", "--wave", help="Gather wave information", action='store_true')
     args = parser.parse_args()
+
     if args.wind:
         captureWindData()
 
