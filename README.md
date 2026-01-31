@@ -87,7 +87,15 @@ Gather data, populate the `DF` and write it out.
   > 7 min past the hour > at :07, :22, :37, :52
 
   > Some systems don't support the /delta so you can specify the time **RASP-Pi DOES**
-  > in a comma seperated list: 07,22,37,52 in the minute slot.
+  > in a comma separated list: 07,22,37,52 in the minute slot.
+```
+# Actual Cron records
+# restart a few minutes can "blow it's nose."
+10 15 * * *           /bin/bash /home/pi/WeatherKiosk/bin/restartMachine.sh
+# Capture new wind and wave data
+4-59/15 * * * *       /bin/bash /home/pi/collectWeatherData.sh -z  # Wind
+8-59/20 * * * *       /bin/bash /home/pi/collectWeatherData.sh -w  # Waves
+```
 
 ### Phase 4
   - Replace the wind graphic with one generated from the captured data. 
@@ -100,3 +108,35 @@ Gather data, populate the `DF` and write it out.
     > Consider marking the source in the data recording and include central LIS as well as
     > as backup capture western LIS  [EXC, WLI, CLI] and switch between based on failure tree:
     > default: EXC : if fail: WLI : if fail: CLI : giveup. or return to Sands Point (different graphic)
+
+### Phase 5
+   > Odd Bug.  Every 6 hours or so the OCR glitches when reading wind data. So far I haven't seen this
+   > with the wave data. I wonder if it is the graphic itself that is being posted incorrectly?  One way 
+   > to debug this is to save the .png file right after it is downloaded. Th pi doesn't have the reserve
+   > storage so I'll pull it to here from the pi.
+   > I use the systemd service to run a script, `capturePNG.sh`, to grab the file a few minutes after it
+   > is downloaded to a local folder: `/home/pbeeken/Documents/Jupyter/OCRWeatherImage/pngDebug` 
+
+#### How to do this
+
+- create `capturePNG.sh`, `pull-remote-png.service`, and `pull-remote-png.timer`
+- out the `.service` and `.timer` files into `/etc/systemd/system/`
+- Enable and Start... Run these commands to activate your new schedule: 
+
+>> Reload systemd to recognize the new files:
+`sudo systemctl daemon-reload`
+>> Enable the timer so it starts on boot:
+`sudo systemctl enable pull-remote-file.timer`
+>> Start the timer immediately:
+`sudo systemctl start pull-remote-file.timer`
+>> How to Check It's Working
+
+- List all active timers: Use `systemctl list-timers` to see when your script is scheduled to run next.
+- Check logs: Use `journalctl -u pull-remote-file.service` to see the exact output and any errors from your script.
+- **Found it.**  The issue is with the graphic. <font color="red">🅝</font> is posted for all values but gusts. The screen was captured almost right away. Now if I am wondering if I could detect this would a second attempt at a download fix the problem?  The rising/falling area shows the string "Error" vs "Rising" or "Falling"
+- For now we will filter out all the NaN from the pandas array when graphing.  
+
+---
+
+## Develop the graphic panel
+

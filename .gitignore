@@ -4,6 +4,10 @@ capture.log
 # downloads
 *.csv
 ex*.png
+*Graph.png
 
 # debugging
 capture.log
+
+# debug Folder
+pngDebug/
