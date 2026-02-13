@@ -4,7 +4,7 @@ General imports needed.
 # foundational libraries
 from datetime import datetime, timedelta
 # from zoneinfo import ZoneInfo
-import pytz  # may need to migrate to ZoneInfo
+import pytz  # may need to migrate to ZoneInfo  RaspberryPi OS doesn't have the latest Python and thus doesn't have ZoneInfo.  This is a workaround until we can upgrade the OS.
 import requests
 
 # OCR tools
@@ -46,7 +46,7 @@ EST = pytz.timezone('US/Eastern')
     easy lift.
 """
 
-########################################### USER CONFIGURABLES #######################################
+######  vvvvvvvvvvvvv  ###### USER CONFIGURABLE ######  vvvvvvvvvvvvv  ######
 # Global definition of no data.
 NaN = float('nan')
 INDEX = 'TimeStamp' # standard index label for dataframes
@@ -55,6 +55,12 @@ INDEX = 'TimeStamp' # standard index label for dataframes
 EXRX_WIND_URL = "https://clydebank.dms.uconn.edu/exrx_wxSens2.png"  # Execution rocks
 WLIS_WIND_URL = "https://clydebank.dms.uconn.edu/wlis_wxSens1.png"  # Western Long Island
 CLIS_WIND_URL = "https://clydebank.dms.uconn.edu/clis_wxSens1.png"  # Central Long Island
+
+windURLS = {
+    'exrx': EXRX_WIND_URL,
+    'wlis': WLIS_WIND_URL,
+    'clis': CLIS_WIND_URL,
+}
 
 # dictionary of locations within the image of the data we want.
 windSources = {
@@ -83,6 +89,12 @@ EXRX_WAVE_URL = "https://clydebank.dms.uconn.edu/exrx_wavs.png"
 WLIS_WAVE_URL = "https://clydebank.dms.uconn.edu/wlis_wavs.png"
 CLIS_WAVE_URL = "https://clydebank.dms.uconn.edu/clis_wavs.png"
 
+waveURLS = {
+    'exrx': EXRX_WAVE_URL,
+    'wlis': WLIS_WAVE_URL,
+    'clis': CLIS_WAVE_URL,
+}
+
 # dictionary of locations within the image of the data we want.
 waveSources = {
     INDEX:                {'bounds':(100,  62, 294,  78), 'value': NaN }, #dateString for reading
@@ -99,8 +111,7 @@ waveSources = {
     'WavePerDomM24 [s]':  {'bounds':(540, 412, 570, 430), 'value': NaN }, #dominant period in last 24hrs
     'WaveTimeM24':        {'bounds':(169, 433, 363, 455), 'value': NaN }, #dateString of 24Hr Max
 }
-########################################### USER CONFIGURABLES #######################################
-
+######  ^^^^^^^^^^^^^  ###### USER CONFIGURABLE ######  ^^^^^^^^^^^^^  ######
 
 class BuoyDataCapture:
     """
@@ -380,7 +391,7 @@ class DataBuffer:
         """Access the dataframe for graphing or analysis."""
         return self.df
 
-def captureWindData():
+def captureWindData(srcURL=EXRX_WIND_URL):
     """
     Docstring for captureWindData
     Capture information from the wind buoy graphical image
@@ -389,7 +400,7 @@ def captureWindData():
     logging.info("-----------------------------------------")
     logging.info("--- Execution Rocks Wind Data Read:")
 
-    wind = BuoyDataCapture(EXRX_WIND_URL, windSources, "exec_wind.png")
+    wind = BuoyDataCapture(srcURL, windSources, "../resources/tmp/wind_panel.png")
     wind.fetch_image()
     wind.extract_regions()
 
@@ -402,11 +413,11 @@ def captureWindData():
     logging.info("dataframe:  %s", wind.getNewDFRecord())
     ## Now we want to store this data in a CSV file or a database.
     #
-    wind_buffer = DataBuffer(list(windSources.keys()), filepath="execrocks_wind_data.csv")
+    wind_buffer = DataBuffer(list(windSources.keys()), filepath="../resources/wind_data.csv")
     # Add the new record (automatically handles truncation and saving)
     wind_buffer.add_record(wind.getNewDFRecord())
 
-def captureWaveData():
+def captureWaveData(srcURL=EXRX_WAVE_URL):
     """
     Docstring for captureWaveData
     Capture information from the wind buoy graphical image
@@ -414,7 +425,7 @@ def captureWaveData():
     """
     logging.info("----------------------------------------")
     logging.info("--- Execution Rocks Wave Data Read:")
-    wave = BuoyDataCapture(EXRX_WAVE_URL, waveSources, "exec_wavs.png")
+    wave = BuoyDataCapture(srcURL, waveSources, "../resources/tmp/wave_panel.png")
     wave.fetch_image()
     wave.extract_regions()
 
@@ -423,26 +434,28 @@ def captureWaveData():
     logging.debug("dataframe:  %s", wave.getNewDFRecord())
     ## Now we want to store this data in a CSV file or a database.
     #
-    wave_buffer = DataBuffer(list(waveSources.keys()), filepath="execrocks_wave_data.csv")
+    wave_buffer = DataBuffer(list(waveSources.keys()), filepath="../resources/wave_data.csv")
     # Add the new record (automatically handles truncation and saving)
     wave_buffer.add_record(wave.getNewDFRecord())
 
 def main():
+    prog = "captureBuoyData"
     parser = argparse.ArgumentParser(
-                    # prog=__name__,
-                    description='Fetches the wind and wave data from the LIRACOOS Buoys',
+                    prog=prog,
+                    description='Fetches the wind and wave data from LIRACOOS Buoys using OCR techniques.',
                     epilog='')
-    parser.add_argument("-z", "--wind", help="Gather wind information", action='store_true')
-    parser.add_argument("-w", "--wave", help="Gather wave information", action='store_true')
+    parser.add_argument("-z", "--wind",   help="Gather wind information", action='store_true')
+    parser.add_argument("-w", "--wave",   help="Gather wave information", action='store_true')
+    parser.add_argument("-s", "--source", help="Select buoy to farm", choices=['exrx', 'wlis', 'clis'], default='exrx')
     args = parser.parse_args()
 
     if args.wind:
-        captureWindData()
+        captureWindData(windURLS[args.source])
 
     if args.wave:
-        captureWaveData()
-
+        captureWaveData(waveURLS[args.source])
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    # logging.basicConfig(filename='../resources/tmp/OCRDataCapture.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename='tmp/OCRDataCapture.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     main()

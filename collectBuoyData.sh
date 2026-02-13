@@ -9,12 +9,12 @@ while [[ "$#" -gt 0 ]]; do
         # gather wind data
         -z|--wind)
             echo "Getting wind data from OCR"
-            python3 CaptureAndStore_WxExcRocks.py -z
+            python3 captureBuoyData.py -z -s exrx
             shift # Move to the next argument
             ;;
         -w|--wave)
             echo "Getting wave data from OCR"
-            python3 CaptureAndStore_WxExcRocks.py -w
+            python3 captureBuoyData.py -w -s exrx
             shift # Move to the next argument
             ;;
         *)
