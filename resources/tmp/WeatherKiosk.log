@@ -1,0 +1,94 @@
+INFO:	2026-02-16 11:48:45,614	WindGraph    	Build wind graph...
+INFO:	2026-02-16 11:48:45,614	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 11:48:45,621	WindGraph    		...got 284 data values
+INFO:	2026-02-16 11:48:45,623	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 11:48:46,051	WindGraph    		...done
+INFO:	2026-02-16 11:50:44,864	WindGraph    	Build wind graph...
+INFO:	2026-02-16 11:50:44,864	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 11:50:44,872	WindGraph    		...got 284 data values
+INFO:	2026-02-16 11:50:44,874	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 11:50:45,226	WindGraph    		...done
+INFO:	2026-02-16 11:51:16,514	WindGraph    	Build wind graph...
+INFO:	2026-02-16 11:51:16,514	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 11:51:16,522	WindGraph    		...got 284 data values
+INFO:	2026-02-16 11:51:16,524	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 11:51:16,950	WindGraph    		...done
+INFO:	2026-02-16 12:49:41,594	WindGraph    	Build wind graph...
+INFO:	2026-02-16 12:49:41,594	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 12:49:41,602	WindGraph    		...got 284 data values
+INFO:	2026-02-16 12:50:13,395	WindGraph    	Build wind graph...
+INFO:	2026-02-16 12:50:13,395	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 12:50:13,403	WindGraph    		...got 284 data values
+INFO:	2026-02-16 12:50:13,405	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 12:50:30,350	WindGraph    	Build wind graph...
+INFO:	2026-02-16 12:50:30,350	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 12:50:30,358	WindGraph    		...got 284 data values
+INFO:	2026-02-16 12:50:30,360	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 12:51:52,737	WindGraph    	Build wind graph...
+INFO:	2026-02-16 12:51:52,737	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 12:51:52,745	WindGraph    		...got 284 data values
+INFO:	2026-02-16 12:52:45,778	WindGraph    	Build wind graph...
+INFO:	2026-02-16 12:52:45,778	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 12:52:45,787	WindGraph    		...got 284 data values
+INFO:	2026-02-16 12:53:07,206	WindGraph    	Build wind graph...
+INFO:	2026-02-16 12:53:07,206	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 12:53:07,214	WindGraph    		...got 284 data values
+INFO:	2026-02-16 12:53:42,059	WindGraph    	Build wind graph...
+INFO:	2026-02-16 12:53:42,059	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 12:53:42,067	WindGraph    		...got 284 data values
+INFO:	2026-02-16 12:53:42,079	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 12:54:20,747	WindGraph    	Build wind graph...
+INFO:	2026-02-16 12:54:20,747	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 12:54:20,755	WindGraph    		...got 284 data values
+INFO:	2026-02-16 12:54:20,769	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 12:55:27,216	WindGraph    	Build wind graph...
+INFO:	2026-02-16 12:55:27,216	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 12:55:27,224	WindGraph    		...got 284 data values
+INFO:	2026-02-16 12:55:27,227	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 12:56:32,659	WindGraph    	Build wind graph...
+INFO:	2026-02-16 12:56:32,660	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 12:56:32,667	WindGraph    		...got 284 data values
+INFO:	2026-02-16 12:56:32,670	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 12:57:58,312	WindGraph    	Build wind graph...
+INFO:	2026-02-16 12:57:58,312	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 12:57:58,320	WindGraph    		...got 284 data values
+INFO:	2026-02-16 12:57:58,322	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 12:58:48,896	WindGraph    	Build wind graph...
+INFO:	2026-02-16 12:58:48,896	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 12:58:48,904	WindGraph    		...got 284 data values
+INFO:	2026-02-16 12:58:48,907	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 13:00:23,494	WindGraph    	Build wind graph...
+INFO:	2026-02-16 13:00:23,494	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 13:00:23,502	WindGraph    		...got 284 data values
+INFO:	2026-02-16 13:00:23,505	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 13:03:11,373	WindGraph    	Build wind graph...
+INFO:	2026-02-16 13:03:11,374	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 13:03:11,382	WindGraph    		...got 284 data values
+INFO:	2026-02-16 13:03:11,384	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 13:04:44,045	WindGraph    	Build wind graph...
+INFO:	2026-02-16 13:04:44,045	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 13:04:44,053	WindGraph    		...got 284 data values
+INFO:	2026-02-16 13:04:44,055	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 13:10:22,771	WindGraph    	Build wind graph...
+INFO:	2026-02-16 13:10:22,771	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 13:10:22,779	WindGraph    		...got 284 data values
+INFO:	2026-02-16 13:10:22,781	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 13:12:35,822	WindGraph    	Build wind graph...
+INFO:	2026-02-16 13:12:35,822	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 13:12:35,830	WindGraph    		...got 284 data values
+INFO:	2026-02-16 13:12:35,832	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 13:14:36,555	WindGraph    	Build wind graph...
+INFO:	2026-02-16 13:14:36,555	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 13:14:36,563	WindGraph    		...got 284 data values
+INFO:	2026-02-16 13:14:36,565	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 13:14:36,999	WindGraph    		...done
+INFO:	2026-02-16 15:57:00,968	WindGraph    	Build wind graph...
+INFO:	2026-02-16 15:57:00,968	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 15:57:00,976	WindGraph    		...got 284 data values
+INFO:	2026-02-16 15:57:00,977	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 15:57:01,397	WindGraph    		...done
+INFO:	2026-02-16 16:01:00,222	WindGraph    	Build wind graph...
+INFO:	2026-02-16 16:01:00,222	WindGraph    		...source: ../resources/wind_data.csv
+INFO:	2026-02-16 16:01:00,230	WindGraph    		...got 284 data values
+INFO:	2026-02-16 16:01:00,231	WindGraph    		...destination: ../resources/tmp/windGraph.png
+INFO:	2026-02-16 16:01:00,627	WindGraph    		...done

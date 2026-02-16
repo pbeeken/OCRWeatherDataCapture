@@ -138,5 +138,5 @@ Gather data, populate the `DF` and write it out.
 
 ---
 
-## Develop the graphic panel
-
+## Develop the graphic panel for the OCR update
+`windgraph` command issues a cgi-bin command `windGraph.py` to start building the new graphic. The plan, therefore is to sleep this command and replace it with a similar one that will build the new OCR version.  The data acquisition and storage of the data is handled asynchronously which populates the csv files. `windGraph.py` only needs to plot.
